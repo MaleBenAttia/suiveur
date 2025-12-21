@@ -4,295 +4,437 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Segment Modeler - Application de modélisation de segments</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-gray-900 text-gray-100">
-    <div id="app" class="min-h-screen p-4 md:p-6">
+<body>
+    <div id="app">
         <!-- Header -->
-        <header class="max-w-6xl mx-auto mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
-                <i class="fas fa-robot text-purple-400 mr-3"></i>
-                Modélisation de Séquence de Segments Robotiques
-            </h1>
-            <p class="text-gray-400">
-                Créez, visualisez et exportez des séquences de segments pour vos projets robotiques
-            </p>
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1 class="title">Segment Modeler Pro</h1>
+                        <p class="subtitle">Application avancée de modélisation de segments robotiques</p>
+                    </div>
+                </div>
+                <div class="header-stats">
+                    <div class="stat">
+                        <i class="fas fa-shapes"></i>
+                        <span>7 Types de Segments</span>
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-download"></i>
+                        <span>Export JSON</span>
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-edit"></i>
+                        <span>Édition en temps réel</span>
+                    </div>
+                </div>
+            </div>
         </header>
 
         <!-- Main Content -->
-        <div class="max-w-6xl mx-auto">
+        <main class="main-content">
             <!-- Two Column Layout -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="two-column-layout">
                 
-                <!-- Left Column: Segment Creation Form -->
-                <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg">
-                    <div class="flex items-center mb-6">
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center mr-3">
-                            <i class="fas fa-plus text-white"></i>
+                <!-- Left Column: Segment Creation/Edit Form -->
+                <div class="form-column">
+                    <div class="form-card">
+                        <div class="form-card-header">
+                            <div class="header-icon-badge">
+                                <i class="fas fa-plus" id="form-icon"></i>
+                            </div>
+                            <div class="header-text">
+                                <h2 id="form-title">Créer un Segment</h2>
+                                <p class="form-subtitle">Remplissez les champs pour définir votre segment</p>
+                            </div>
                         </div>
-                        <h2 class="text-2xl font-bold text-purple-300">Créer un Segment</h2>
-                    </div>
 
-                    <!-- Primary Fields -->
-                    <div class="mb-8">
-                        <div class="flex items-center mb-4">
-                            <i class="fas fa-list-check text-blue-400 mr-2"></i>
-                            <h3 class="text-lg font-semibold text-blue-300">📋 Champs Primaires</h3>
+                        <!-- Primary Fields Section -->
+                        <div class="section">
+                            <div class="section-header">
+                                <div class="section-icon">
+                                    <i class="fas fa-list-check"></i>
+                                </div>
+                                <h3>📋 Champs Primaires</h3>
+                            </div>
+                            <div class="form-grid">
+                                <div class="input-group">
+                                    <label class="input-label">
+                                        <i class="fas fa-hashtag"></i> ID
+                                    </label>
+                                    <input type="number" id="segment-id" value="1" class="text-input">
+                                </div>
+
+                                <div class="input-group">
+                                    <label class="input-label">
+                                        <i class="fas fa-tag"></i> Nom du Segment
+                                    </label>
+                                    <input type="text" id="segment-name" value="segment_1" class="text-input">
+                                </div>
+
+                                <div class="input-group">
+                                    <label class="input-label">
+                                        <i class="fas fa-ruler"></i> Distance (cm)
+                                    </label>
+                                    <input type="number" id="segment-distance" value="100" class="text-input">
+                                </div>
+
+                                <div class="input-group">
+                                    <label class="input-label">
+                                        <i class="fas fa-shapes"></i> Type de Segment
+                                    </label>
+                                    <div class="select-container">
+                                        <select id="segment-type" class="select-input">
+                                            <option value="ligne_continue">Ligne Continue</option>
+                                            <option value="virage">Virage</option>
+                                            <option value="sinus">Sinus</option>
+                                            <option value="cercle">Cercle</option>
+                                            <option value="demi_cercle">Demi-Cercle</option>
+                                            <option value="arc">Arc de Cercle</option>
+                                            <option value="zigzag">Zigzag</option>
+                                        </select>
+                                        <i class="fas fa-chevron-down select-arrow"></i>
+                                    </div>
+                                </div>
+
+                                <!-- Ligne Noire ou Blanche (Obligatoire) -->
+                                <div class="input-group">
+                                    <label class="input-label">
+                                        <i class="fas fa-palette"></i> Ligne *
+                                    </label>
+                                    <div class="select-container">
+                                        <select id="line-color" class="select-input" required>
+                                            <option value="">Sélectionnez la couleur</option>
+                                            <option value="noire" selected>Ligne Noire</option>
+                                            <option value="blanche">Ligne Blanche</option>
+                                        </select>
+                                        <i class="fas fa-chevron-down select-arrow"></i>
+                                    </div>
+                                </div>
+
+                                <!-- Frein (Obligatoire) -->
+                                <div class="input-group">
+                                    <label class="input-label">
+                                        <i class="fas fa-stop-circle"></i> Type de Frein *
+                                    </label>
+                                    <div class="select-container">
+                                        <select id="brake-type" class="select-input" required>
+                                            <option value="">Sélectionnez le frein</option>
+                                            <option value="frein_sec" selected>Frein Sec</option>
+                                            <option value="frein_progressif">Frein Progressif</option>
+                                            <option value="sans_frein">Sans Frein</option>
+                                        </select>
+                                        <i class="fas fa-chevron-down select-arrow"></i>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm text-gray-300 mb-2">
-                                    <i class="fas fa-hashtag text-gray-400 mr-1"></i> ID
-                                </label>
-                                <input type="number" id="segment-id" value="1" 
-                                       class="form-input">
+
+                        <!-- ZigZag Parameters (only visible when type is zigzag) -->
+                        <div id="zigzag-params" class="section hidden">
+                            <div class="section-header">
+                                <div class="section-icon">
+                                    <i class="fas fa-wave-square"></i>
+                                </div>
+                                <h3>⤴️ Paramètres ZigZag</h3>
+                            </div>
+                            <div class="form-grid">
+                                <div class="input-group">
+                                    <label>Nombre de ZigZags</label>
+                                    <input type="number" id="zigzag-count" value="3" min="1" class="text-input">
+                                </div>
+                                
+                                <div class="input-group">
+                                    <label>Angle des ZigZags</label>
+                                    <input type="text" id="zigzag-angles" placeholder="30,-30,30" class="text-input">
+                                    <small class="input-hint">Séparés par des virgules (ex: 30,-30,30)</small>
+                                </div>
+                                
+                                <div class="input-group">
+                                    <label>Distances des ZigZags (cm)</label>
+                                    <input type="text" id="zigzag-distances" placeholder="20,15,10" class="text-input">
+                                    <small class="input-hint">Séparés par des virgules (ex: 20,15,10)</small>
+                                </div>
+                                
+                                <div class="input-group">
+                                    <label>Temps des ZigZags (s) - Optionnel</label>
+                                    <input type="text" id="zigzag-times" placeholder="0.2,0.1,0.3" class="text-input">
+                                    <small class="input-hint">Séparés par des virgules (ex: 0.2,0.1,0.3)</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Circle Parameters (only visible when type is cercle/demi_cercle/arc) -->
+                        <div id="circle-params" class="section hidden">
+                            <div class="section-header">
+                                <div class="section-icon">
+                                    <i class="fas fa-circle"></i>
+                                </div>
+                                <h3>⭕ Paramètres Cercle</h3>
+                            </div>
+                            <div class="form-grid">
+                                <div class="input-group">
+                                    <label>Rayon (cm)</label>
+                                    <input type="number" id="circle-radius" value="5" min="1" class="text-input">
+                                </div>
+                                
+                                <div class="input-group">
+                                    <label>Nombre de Tours</label>
+                                    <div class="select-container">
+                                        <select id="circle-turns" class="select-input">
+                                            <option value="0.5">1/2 Tour</option>
+                                            <option value="1" selected>1 Tour</option>
+                                            <option value="1.5">1.5 Tours</option>
+                                            <option value="2">2 Tours</option>
+                                            <option value="2.5">2.5 Tours</option>
+                                            <option value="3">3 Tours</option>
+                                            <option value="custom">Personnalisé</option>
+                                        </select>
+                                        <i class="fas fa-chevron-down select-arrow"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="input-group">
+                                    <label id="custom-turns-label" class="hidden">Tours Personnalisés</label>
+                                    <input type="number" id="custom-circle-turns" value="1" step="0.5" min="0.1" class="text-input hidden">
+                                </div>
+                            </div>
+                            
+                            <div class="info-card">
+                                <div class="info-content">
+                                    <i class="fas fa-calculator"></i>
+                                    <div>
+                                        <p class="info-title">Distance calculée</p>
+                                        <p class="info-value"><span id="calculated-distance">31.42 cm</span></p>
+                                    </div>
+                                </div>
+                                <p class="info-hint">Formule: 2 × π × rayon × tours</p>
+                            </div>
+                        </div>
+
+                        <!-- Speed Section -->
+                        <div class="section">
+                            <div class="section-header">
+                                <div class="section-icon">
+                                    <i class="fas fa-bolt"></i>
+                                </div>
+                                <h3>⚡ Vitesse</h3>
+                            </div>
+                            
+                            <div class="toggle-group">
+                                <button id="speed-unchanged" class="toggle-btn active">
+                                    <i class="fas fa-equals"></i>
+                                    <span>Inchangée</span>
+                                </button>
+                                <button id="speed-modify" class="toggle-btn">
+                                    <i class="fas fa-sliders"></i>
+                                    <span>Modifier</span>
+                                </button>
                             </div>
 
-                            <div>
-                                <label class="block text-sm text-gray-300 mb-2">
-                                    <i class="fas fa-tag text-gray-400 mr-1"></i> Nom du Segment
-                                </label>
-                                <input type="text" id="segment-name" value="segment_1" 
-                                       class="form-input">
+                            <div id="speed-params" class="hidden speed-params">
+                                <div class="form-grid">
+                                    <div class="input-group">
+                                        <label>Vitesse Max</label>
+                                        <input type="number" id="speed-max" placeholder="Ex: 100" class="text-input">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Vitesse Base</label>
+                                        <input type="number" id="speed-base" placeholder="Ex: 50" class="text-input">
+                                    </div>
+                                </div>
                             </div>
+                        </div>
 
-                            <div>
-                                <label class="block text-sm text-gray-300 mb-2">
-                                    <i class="fas fa-ruler text-gray-400 mr-1"></i> Distance (cm)
-                                </label>
-                                <input type="number" id="segment-distance" value="100" 
-                                       class="form-input">
+                        <!-- Driving Mode -->
+                        <div class="section">
+                            <div class="section-header">
+                                <div class="section-icon">
+                                    <i class="fas fa-car"></i>
+                                </div>
+                                <h3>🚗 Mode de Conduite</h3>
                             </div>
-
-                            <div>
-                                <label class="block text-sm text-gray-300 mb-2">
-                                    <i class="fas fa-shapes text-gray-400 mr-1"></i> Type de Segment
-                                </label>
-                                <select id="segment-type" class="form-select">
-                                    <option value="ligne_continue">Ligne Continue</option>
-                                    <option value="virage">Virage</option>
-                                    <option value="sinus">Sinus</option>
-                                    <option value="cercle">Cercle</option>
-                                    <option value="demi_cercle">Demi-Cercle</option>
-                                    <option value="arc">Arc de Cercle</option>
-                                    <option value="zigzag">Zigzag</option>
+                            
+                            <div class="select-container">
+                                <select id="driving-mode" class="select-input">
+                                    <option value="pid_ligne">PID Ligne</option>
+                                    <option value="encodeur_distance">Encodeur Distance</option>
+                                    <option value="suivi_ligne">Suivi de Ligne</option>
+                                    <option value="gyroscope">Gyroscope</option>
+                                    <option value="custom">✍️ Écrire moi-même</option>
                                 </select>
+                                <i class="fas fa-chevron-down select-arrow"></i>
                             </div>
 
-                            <!-- Ligne Noire ou Blanche (Obligatoire) -->
-                            <div>
-                                <label class="block text-sm text-gray-300 mb-2">
-                                    <i class="fas fa-palette text-gray-400 mr-1"></i> Ligne *
+                            <div id="custom-driving-mode" class="hidden mt-3">
+                                <input type="text" id="custom-driving-input" placeholder="Écrivez votre mode de conduite personnalisé" class="text-input">
+                            </div>
+                        </div>
+
+                        <!-- Interrupted Lines -->
+                        <div class="section">
+                            <div class="section-header">
+                                <div class="section-icon">
+                                    <i class="fas fa-grip-lines"></i>
+                                </div>
+                                <h3>➖ Traits Interrompus</h3>
+                            </div>
+                            
+                            <div class="checkbox-wrapper">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="enable-traits" class="checkbox-input">
+                                    <span class="checkbox-custom"></span>
+                                    <span class="checkbox-text">Activer les traits interrompus</span>
                                 </label>
-                                <select id="line-color" class="form-select" required>
-                                    <option value="">Sélectionnez la couleur</option>
-                                    <option value="noire" selected>Ligne Noire</option>
-                                    <option value="blanche">Ligne Blanche</option>
+                            </div>
+
+                            <div id="traits-container" class="hidden traits-container">
+                                <p class="hint-text">
+                                    <i class="fas fa-info-circle"></i>Distances entre i et i+1 (en cm)
+                                </p>
+                                <div id="traits-list">
+                                    <div class="trait-row">
+                                        <input type="number" value="3" class="trait-input" placeholder="Trait 1">
+                                        <button class="remove-trait-btn">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div class="trait-row">
+                                        <input type="number" value="2" class="trait-input" placeholder="Trait 2">
+                                        <button class="remove-trait-btn">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button id="add-trait" class="add-trait-btn">
+                                    <i class="fas fa-plus"></i>
+                                    Ajouter un trait
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- End Condition -->
+                        <div class="section">
+                            <div class="section-header">
+                                <div class="section-icon">
+                                    <i class="fas fa-flag-checkered"></i>
+                                </div>
+                                <h3>🏁 Condition de Fin</h3>
+                            </div>
+                            
+                            <div class="select-container">
+                                <select id="end-condition" class="select-input">
+                                    <option value="aucune" selected>Aucune</option>
+                                    <option value="distance">Distance</option>
+                                    <option value="capteurs">Capteurs</option>
+                                    <option value="angle">Angle</option>
+                                    <option value="temps">Temps</option>
+                                    <option value="custom">✍️ Personnalisé</option>
                                 </select>
+                                <i class="fas fa-chevron-down select-arrow"></i>
                             </div>
 
-                            <!-- Frein (Obligatoire) -->
-                            <div>
-                                <label class="block text-sm text-gray-300 mb-2">
-                                    <i class="fas fa-stop-circle text-gray-400 mr-1"></i> Type de Frein *
-                                </label>
-                                <select id="brake-type" class="form-select" required>
-                                    <option value="">Sélectionnez le frein</option>
-                                    <option value="frein_sec" selected>Frein Sec</option>
-                                    <option value="frein_progressif">Frein Progressif</option>
-                                    <option value="sans_frein">Sans Frein</option>
-                                </select>
+                            <!-- Condition Parameters -->
+                            <div id="condition-params" class="condition-params mt-3">
+                                <!-- Will be filled dynamically based on selection -->
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Speed Section -->
-                    <div class="mb-8">
-                        <div class="flex items-center mb-4">
-                            <i class="fas fa-bolt text-green-400 mr-2"></i>
-                            <h3 class="text-lg font-semibold text-green-300">⚡ Vitesse</h3>
-                        </div>
-                        
-                        <div class="flex space-x-4 mb-4">
-                            <button id="speed-unchanged" class="speed-btn active">
-                                <i class="fas fa-equals mr-2"></i> Inchangée
+                        <!-- Action Buttons -->
+                        <div class="action-buttons">
+                            <button id="add-segment" class="primary-btn">
+                                <i class="fas fa-plus-circle"></i>
+                                Ajouter le Segment
                             </button>
-                            <button id="speed-modify" class="speed-btn">
-                                <i class="fas fa-sliders mr-2"></i> Modifier
+                            <button id="update-segment" class="secondary-btn hidden">
+                                <i class="fas fa-save"></i>
+                                Mettre à jour
                             </button>
-                        </div>
-
-                        <div id="speed-params" class="hidden bg-gray-700/50 p-4 rounded-lg">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm text-gray-300 mb-2">Vitesse Max</label>
-                                    <input type="number" id="speed-max" placeholder="Ex: 100" 
-                                           class="form-input">
-                                </div>
-                                <div>
-                                    <label class="block text-sm text-gray-300 mb-2">Vitesse Base</label>
-                                    <input type="number" id="speed-base" placeholder="Ex: 50" 
-                                           class="form-input">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Driving Mode -->
-                    <div class="mb-8">
-                        <div class="flex items-center mb-4">
-                            <i class="fas fa-car text-pink-400 mr-2"></i>
-                            <h3 class="text-lg font-semibold text-pink-300">🚗 Mode de Conduite</h3>
-                        </div>
-                        
-                        <select id="driving-mode" class="form-select mb-3">
-                            <option value="pid_ligne">PID Ligne</option>
-                            <option value="encodeur_distance">Encodeur Distance</option>
-                            <option value="suivi_ligne">Suivi de Ligne</option>
-                            <option value="gyroscope">Gyroscope</option>
-                            <option value="custom">✍️ Écrire moi-même</option>
-                        </select>
-
-                        <div id="custom-driving-mode" class="hidden">
-                            <input type="text" id="custom-driving-input" placeholder="Écrivez votre mode de conduite personnalisé" 
-                                   class="form-input">
-                        </div>
-                    </div>
-
-                    <!-- Interrupted Lines -->
-                    <div class="mb-8">
-                        <div class="flex items-center mb-4">
-                            <i class="fas fa-grip-lines text-yellow-400 mr-2"></i>
-                            <h3 class="text-lg font-semibold text-yellow-300">➖ Traits Interrompus</h3>
-                        </div>
-                        
-                        <div class="flex items-center mb-4">
-                            <input type="checkbox" id="enable-traits" class="w-5 h-5 mr-3">
-                            <label for="enable-traits" class="text-gray-300">Activer les traits interrompus</label>
-                        </div>
-
-                        <div id="traits-container" class="hidden space-y-3 bg-gray-700/50 p-4 rounded-lg">
-                            <p class="text-sm text-gray-400 mb-3">
-                                <i class="fas fa-info-circle mr-2"></i>Distances entre i et i+1 (en cm)
-                            </p>
-                            <div id="traits-list">
-                                <div class="trait-item flex gap-2 mb-2">
-                                    <input type="number" value="3" class="trait-input" placeholder="Trait 1">
-                                    <button class="remove-trait">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                                <div class="trait-item flex gap-2 mb-2">
-                                    <input type="number" value="2" class="trait-input" placeholder="Trait 2">
-                                    <button class="remove-trait">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <button id="add-trait" class="add-trait-btn">
-                                <i class="fas fa-plus mr-2"></i> Ajouter un trait
+                            <button id="cancel-edit" class="tertiary-btn hidden">
+                                <i class="fas fa-times"></i>
+                                Annuler
                             </button>
                         </div>
                     </div>
-
-                    <!-- End Condition -->
-                    <div class="mb-8">
-                        <div class="flex items-center mb-4">
-                            <i class="fas fa-flag-checkered text-red-400 mr-2"></i>
-                            <h3 class="text-lg font-semibold text-red-300">🏁 Condition de Fin</h3>
-                        </div>
-                        
-                        <select id="end-condition" class="form-select mb-4">
-                            <option value="aucune" selected>Aucune</option>
-                            <option value="distance">Distance</option>
-                            <option value="capteurs">Capteurs</option>
-                            <option value="angle">Angle</option>
-                            <option value="temps">Temps</option>
-                            <option value="custom">✍️ Personnalisé</option>
-                        </select>
-
-                        <!-- Condition Parameters -->
-                        <div id="condition-params" class="space-y-4">
-                            <!-- Will be filled dynamically based on selection -->
-                        </div>
-                    </div>
-
-                    <!-- Add Segment Button -->
-                    <button id="add-segment" class="add-segment-btn">
-                        <i class="fas fa-plus-circle mr-3 text-xl"></i>
-                        Ajouter le Segment
-                    </button>
                 </div>
 
                 <!-- Right Column: Segment List & Preview -->
-                <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-                        <div class="flex items-center mb-4 md:mb-0">
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-r from-green-500 to-teal-500 flex items-center justify-center mr-3">
-                                <i class="fas fa-list text-white"></i>
+                <div class="preview-column">
+                    <div class="preview-card">
+                        <div class="preview-header">
+                            <div class="preview-title">
+                                <div class="preview-icon">
+                                    <i class="fas fa-list"></i>
+                                </div>
+                                <div>
+                                    <h2>Segments</h2>
+                                    <p id="segment-count" class="preview-subtitle">0 segment(s) créé(s)</p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 class="text-2xl font-bold text-green-300">Segments</h2>
-                                <p id="segment-count" class="text-gray-400">0 segment(s) créé(s)</p>
-                            </div>
-                        </div>
-                        
-                        <div class="flex space-x-3">
-                            <button id="toggle-view" class="action-btn blue-btn">
-                                <i class="fas fa-eye mr-2"></i>
-                                <span id="view-mode-text">Vue JSON</span>
-                            </button>
-                            <button id="export-json" class="action-btn purple-btn">
-                                <i class="fas fa-download mr-2"></i>
-                                Exporter
-                            </button>
-                            <button id="clear-all" class="action-btn red-btn">
-                                <i class="fas fa-trash-alt mr-2"></i>
-                                Tout effacer
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Segment List View -->
-                    <div id="segment-list-view" class="segment-list-view scrollbar-custom">
-                        <!-- Segments will be added here dynamically -->
-                        <div id="empty-state" class="empty-state">
-                            <div class="empty-state-icon">
-                                <i class="fas fa-road"></i>
-                            </div>
-                            <h3 class="empty-state-title">Aucun segment créé</h3>
-                            <p class="empty-state-text">Commencez par créer votre premier segment en utilisant le formulaire à gauche</p>
-                        </div>
-                    </div>
-
-                    <!-- JSON Preview View -->
-                    <div id="json-preview-view" class="hidden">
-                        <div class="bg-gray-900 rounded-lg p-5">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold text-green-300">Prévisualisation JSON</h3>
-                                <button id="copy-json" class="copy-json-btn">
-                                    <i class="fas fa-copy mr-2"></i>
-                                    Copier
+                            
+                            <div class="preview-actions">
+                                <button id="toggle-view" class="icon-btn blue">
+                                    <i class="fas fa-eye"></i>
+                                    <span id="view-mode-text">Vue JSON</span>
+                                </button>
+                                <button id="export-json" class="icon-btn purple">
+                                    <i class="fas fa-download"></i>
+                                    Exporter
+                                </button>
+                                <button id="clear-all" class="icon-btn red">
+                                    <i class="fas fa-trash-alt"></i>
+                                    Tout effacer
                                 </button>
                             </div>
-                            <pre id="json-output" class="json-output"></pre>
+                        </div>
+
+                        <!-- Segment List View -->
+                        <div id="segment-list-view" class="segment-list">
+                            <!-- Segments will be added here dynamically -->
+                            <div id="empty-state" class="empty-state">
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-road"></i>
+                                </div>
+                                <h3>Aucun segment créé</h3>
+                                <p>Commencez par créer votre premier segment en utilisant le formulaire à gauche</p>
+                            </div>
+                        </div>
+
+                        <!-- JSON Preview View -->
+                        <div id="json-preview-view" class="json-preview hidden">
+                            <div class="json-container">
+                                <div class="json-header">
+                                    <h3>Prévisualisation JSON</h3>
+                                    <button id="copy-json" class="icon-btn gray">
+                                        <i class="fas fa-copy"></i>
+                                        Copier
+                                    </button>
+                                </div>
+                                <div class="json-content">
+                                    <pre id="json-output" class="json-output"></pre>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </main>
 
-            <!-- Footer -->
-            <footer class="mt-8 pt-6 border-t border-gray-800 text-center text-gray-500 text-sm">
-                <p>Segment Modeler - Application de modélisation de segments robotiques</p>
-                <p class="mt-1">Exporte tes données en JSON pour les utiliser dans tes projets</p>
-            </footer>
-        </div>
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <p>Segment Modeler Pro - Application avancée de modélisation de segments robotiques</p>
+                <p class="footer-subtext">Exportez vos données en JSON pour les utiliser dans vos projets</p>
+            </div>
+        </footer>
     </div>
 
     <!-- JavaScript -->

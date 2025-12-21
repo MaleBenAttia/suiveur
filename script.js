@@ -6,11 +6,18 @@ const state = {
         nom_segment: 'segment_1',
         distance_cm: 100,
         type_segment: 'ligne_continue',
-        ligne: 'noire', // Obligatoire
-        frein: 'frein_sec' // Obligatoire
+        ligne: 'noire',
+        frein: 'frein_sec'
     },
-    viewMode: 'list', // 'list' or 'json'
-    nextId: 2
+    viewMode: 'list',
+    nextId: 2,
+    editingIndex: null,
+    segmentTypes: {
+        cercle: 'cercle',
+        demi_cercle: 'demi_cercle',
+        arc: 'arc',
+        zigzag: 'zigzag'
+    }
 };
 
 // DOM Elements
@@ -22,6 +29,25 @@ const elements = {
     segmentType: document.getElementById('segment-type'),
     lineColor: document.getElementById('line-color'),
     brakeType: document.getElementById('brake-type'),
+    
+    // Form elements
+    formIcon: document.getElementById('form-icon'),
+    formTitle: document.getElementById('form-title'),
+    
+    // ZigZag parameters
+    zigzagParams: document.getElementById('zigzag-params'),
+    zigzagCount: document.getElementById('zigzag-count'),
+    zigzagAngles: document.getElementById('zigzag-angles'),
+    zigzagDistances: document.getElementById('zigzag-distances'),
+    zigzagTimes: document.getElementById('zigzag-times'),
+    
+    // Circle parameters - CHANGÉ: rayon au lieu de diamètre
+    circleParams: document.getElementById('circle-params'),
+    circleRadius: document.getElementById('circle-radius'), // CHANGÉ
+    circleTurns: document.getElementById('circle-turns'),
+    customTurnsLabel: document.getElementById('custom-turns-label'),
+    customCircleTurns: document.getElementById('custom-circle-turns'),
+    calculatedDistance: document.getElementById('calculated-distance'),
     
     // Speed
     speedUnchangedBtn: document.getElementById('speed-unchanged'),
@@ -45,8 +71,12 @@ const elements = {
     endCondition: document.getElementById('end-condition'),
     conditionParams: document.getElementById('condition-params'),
     
-    // Buttons
+    // Action buttons
     addSegmentBtn: document.getElementById('add-segment'),
+    updateSegmentBtn: document.getElementById('update-segment'),
+    cancelEditBtn: document.getElementById('cancel-edit'),
+    
+    // Preview elements
     segmentCount: document.getElementById('segment-count'),
     segmentListView: document.getElementById('segment-list-view'),
     jsonPreviewView: document.getElementById('json-preview-view'),
@@ -69,6 +99,20 @@ function initApp() {
     // Set default values for required fields
     elements.lineColor.value = state.currentSegment.ligne;
     elements.brakeType.value = state.currentSegment.frein;
+    
+    // Update current segment
+    updateCurrentSegment();
+    
+    // Setup segment type change listener
+    elements.segmentType.addEventListener('change', handleSegmentTypeChange);
+    
+    // Setup circle parameters listeners
+    elements.circleRadius.addEventListener('input', calculateCircleDistance); // CHANGÉ
+    elements.circleTurns.addEventListener('change', handleCircleTurnsChange);
+    elements.customCircleTurns.addEventListener('input', calculateCircleDistance);
+    
+    // Initial calculation for circle distance
+    calculateCircleDistance();
 }
 
 // Setup all event listeners
@@ -108,6 +152,12 @@ function setupEventListeners() {
     // Add segment button
     elements.addSegmentBtn.addEventListener('click', addSegment);
 
+    // Update segment button
+    elements.updateSegmentBtn.addEventListener('click', updateSegment);
+
+    // Cancel edit button
+    elements.cancelEditBtn.addEventListener('click', cancelEdit);
+
     // Toggle view mode
     elements.toggleViewBtn.addEventListener('click', toggleViewMode);
 
@@ -127,32 +177,131 @@ function setupEventListeners() {
     elements.segmentType.addEventListener('change', updateCurrentSegment);
     elements.lineColor.addEventListener('change', updateCurrentSegment);
     elements.brakeType.addEventListener('change', updateCurrentSegment);
+    
+    // ZigZag parameters
+    elements.zigzagCount.addEventListener('change', validateZigZagParams);
+    elements.zigzagAngles.addEventListener('input', validateZigZagParams);
+    elements.zigzagDistances.addEventListener('input', validateZigZagParams);
+    elements.zigzagTimes.addEventListener('input', validateZigZagParams);
+}
+
+// Handle segment type change
+function handleSegmentTypeChange() {
+    const type = elements.segmentType.value;
+    
+    // Hide all specialized panels
+    elements.zigzagParams.classList.add('hidden');
+    elements.circleParams.classList.add('hidden');
+    
+    // Show appropriate panel
+    if (type === 'zigzag') {
+        elements.zigzagParams.classList.remove('hidden');
+        validateZigZagParams();
+    } else if (['cercle', 'demi_cercle', 'arc'].includes(type)) {
+        elements.circleParams.classList.remove('hidden');
+        calculateCircleDistance();
+    }
+    
+    updateCurrentSegment();
+}
+
+// Handle circle turns change
+function handleCircleTurnsChange() {
+    const turns = elements.circleTurns.value;
+    
+    if (turns === 'custom') {
+        elements.customTurnsLabel.classList.remove('hidden');
+        elements.customCircleTurns.classList.remove('hidden');
+        elements.customCircleTurns.focus();
+    } else {
+        elements.customTurnsLabel.classList.add('hidden');
+        elements.customCircleTurns.classList.add('hidden');
+    }
+    
+    calculateCircleDistance();
+}
+
+// Calculate circle distance with RAYON
+function calculateCircleDistance() {
+    const type = elements.segmentType.value;
+    const radius = parseFloat(elements.circleRadius.value) || 5; // CHANGÉ: rayon par défaut 5
+    let turns = 1;
+    
+    if (elements.circleTurns.value === 'custom') {
+        turns = parseFloat(elements.customCircleTurns.value) || 1;
+    } else {
+        turns = parseFloat(elements.circleTurns.value) || 1;
+    }
+    
+    // Calculate circumference: 2 * π * rayon
+    const circumference = 2 * Math.PI * radius;
+    
+    // Calculate distance based on type
+    let distance = circumference * turns;
+    
+    if (type === 'demi_cercle') {
+        // Pour un demi-cercle: π * rayon * tours
+        distance = Math.PI * radius * turns;
+    } else if (type === 'arc') {
+        // Pour un arc, on utilise directement la formule complète
+        distance = circumference * turns;
+    }
+    
+    // Update distance field and display
+    elements.segmentDistance.value = distance.toFixed(2);
+    elements.calculatedDistance.textContent = `${distance.toFixed(2)} cm`;
+    
+    updateCurrentSegment();
+}
+
+// Validate ZigZag parameters
+function validateZigZagParams() {
+    const count = parseInt(elements.zigzagCount.value) || 3;
+    
+    // Get arrays from comma-separated values
+    const angles = elements.zigzagAngles.value.split(',').map(a => a.trim());
+    const distances = elements.zigzagDistances.value.split(',').map(d => d.trim());
+    const times = elements.zigzagTimes.value.split(',').map(t => t.trim());
+    
+    // Validate lengths
+    if (angles.length < count) {
+        showNotification(`Veuillez entrer ${count} angles séparés par des virgules`, 'warning');
+        return false;
+    }
+    
+    if (distances.length < count) {
+        showNotification(`Veuillez entrer ${count} distances séparées par des virgules`, 'warning');
+        return false;
+    }
+    
+    // Calculate total distance for ZigZag
+    const totalDistance = distances.reduce((sum, dist) => sum + (parseFloat(dist) || 0), 0);
+    elements.segmentDistance.value = totalDistance.toFixed(2);
+    
+    updateCurrentSegment();
+    return true;
 }
 
 // Set speed mode
 function setSpeedMode(mode) {
     if (mode === 'unchanged') {
-        elements.speedUnchangedBtn.classList.remove('bg-gray-700', 'text-gray-300', 'hover:bg-gray-600');
-        elements.speedUnchangedBtn.classList.add('bg-gradient-to-r', 'from-green-600', 'to-green-700', 'text-white');
-        elements.speedModifyBtn.classList.remove('bg-gradient-to-r', 'from-green-600', 'to-green-700', 'text-white');
-        elements.speedModifyBtn.classList.add('bg-gray-700', 'text-gray-300', 'hover:bg-gray-600');
+        elements.speedUnchangedBtn.classList.add('active');
+        elements.speedModifyBtn.classList.remove('active');
         elements.speedParams.classList.add('hidden');
     } else {
-        elements.speedModifyBtn.classList.remove('bg-gray-700', 'text-gray-300', 'hover:bg-gray-600');
-        elements.speedModifyBtn.classList.add('bg-gradient-to-r', 'from-green-600', 'to-green-700', 'text-white');
-        elements.speedUnchangedBtn.classList.remove('bg-gradient-to-r', 'from-green-600', 'to-green-700', 'text-white');
-        elements.speedUnchangedBtn.classList.add('bg-gray-700', 'text-gray-300');
+        elements.speedModifyBtn.classList.add('active');
+        elements.speedUnchangedBtn.classList.remove('active');
         elements.speedParams.classList.remove('hidden');
     }
 }
 
 // Add a new trait input
 function addTrait() {
-    const traitCount = elements.traitsList.querySelectorAll('.trait-item').length + 1;
+    const traitCount = elements.traitsList.querySelectorAll('.trait-row').length + 1;
     const traitHtml = `
-        <div class="trait-item flex gap-2 mb-2">
-            <input type="number" class="trait-input flex-1" placeholder="Trait ${traitCount}">
-            <button class="remove-trait">
+        <div class="trait-row">
+            <input type="number" class="trait-input" placeholder="Trait ${traitCount}">
+            <button class="remove-trait-btn">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -165,7 +314,7 @@ function addTrait() {
     elements.traitsList.appendChild(newTrait);
     
     // Add event listener to remove button
-    newTrait.querySelector('.remove-trait').addEventListener('click', function() {
+    newTrait.querySelector('.remove-trait-btn').addEventListener('click', function() {
         newTrait.remove();
     });
 }
@@ -178,48 +327,43 @@ function updateConditionParams() {
     switch(condition) {
         case 'distance':
             html = `
-                <div class="bg-gray-700/50 p-4 rounded-lg">
-                    <label class="block text-sm text-gray-300 mb-2">Distance (cm)</label>
-                    <input type="number" id="condition-distance" placeholder="Ex: 150" 
-                           class="form-input">
+                <div class="info-card">
+                    <label>Distance (cm)</label>
+                    <input type="number" id="condition-distance" placeholder="Ex: 150" class="text-input mt-2">
                 </div>
             `;
             break;
         case 'capteurs':
             html = `
-                <div class="bg-gray-700/50 p-4 rounded-lg">
-                    <label class="block text-sm text-gray-300 mb-2">Nombre de Capteurs</label>
-                    <input type="number" id="condition-capteurs" placeholder="Ex: 3" 
-                           class="form-input">
-                    <p class="text-xs text-gray-400 mt-2">Nombre de capteurs activés pour terminer</p>
+                <div class="info-card">
+                    <label>Nombre de Capteurs</label>
+                    <input type="number" id="condition-capteurs" placeholder="Ex: 3" class="text-input mt-2">
+                    <p class="info-hint">Nombre de capteurs activés pour terminer</p>
                 </div>
             `;
             break;
         case 'angle':
             html = `
-                <div class="bg-gray-700/50 p-4 rounded-lg">
-                    <label class="block text-sm text-gray-300 mb-2">Angle (degrés)</label>
-                    <input type="number" id="condition-angle" placeholder="Ex: 90 (droite) ou -90 (gauche)" 
-                           class="form-input">
-                    <p class="text-xs text-gray-400 mt-2">Positif = droite, Négatif = gauche</p>
+                <div class="info-card">
+                    <label>Angle (degrés)</label>
+                    <input type="number" id="condition-angle" placeholder="Ex: 90 (droite) ou -90 (gauche)" class="text-input mt-2">
+                    <p class="info-hint">Positif = droite, Négatif = gauche</p>
                 </div>
             `;
             break;
         case 'temps':
             html = `
-                <div class="bg-gray-700/50 p-4 rounded-lg">
-                    <label class="block text-sm text-gray-300 mb-2">Temps (secondes)</label>
-                    <input type="number" id="condition-temps" placeholder="Ex: 5.5" 
-                           class="form-input">
+                <div class="info-card">
+                    <label>Temps (secondes)</label>
+                    <input type="number" id="condition-temps" placeholder="Ex: 5.5" class="text-input mt-2">
                 </div>
             `;
             break;
         case 'custom':
             html = `
-                <div class="bg-gray-700/50 p-4 rounded-lg">
-                    <label class="block text-sm text-gray-300 mb-2">Condition Personnalisée</label>
-                    <textarea id="condition-custom" rows="3" placeholder="Écrivez votre propre condition" 
-                              class="form-input"></textarea>
+                <div class="info-card">
+                    <label>Condition Personnalisée</label>
+                    <textarea id="condition-custom" rows="3" placeholder="Écrivez votre propre condition" class="text-input mt-2"></textarea>
                 </div>
             `;
             break;
@@ -235,7 +379,7 @@ function updateCurrentSegment() {
     state.currentSegment = {
         id: parseInt(elements.segmentId.value) || 1,
         nom_segment: elements.segmentName.value,
-        distance_cm: parseInt(elements.segmentDistance.value) || 100,
+        distance_cm: parseFloat(elements.segmentDistance.value) || 100,
         type_segment: elements.segmentType.value,
         ligne: elements.lineColor.value,
         frein: elements.brakeType.value
@@ -249,22 +393,274 @@ function validateForm() {
     // Check line color
     if (!elements.lineColor.value) {
         showNotification('Veuillez sélectionner une couleur de ligne', 'error');
-        elements.lineColor.classList.add('border-red-500');
+        elements.lineColor.classList.add('error');
         isValid = false;
     } else {
-        elements.lineColor.classList.remove('border-red-500');
+        elements.lineColor.classList.remove('error');
     }
     
     // Check brake type
     if (!elements.brakeType.value) {
         showNotification('Veuillez sélectionner un type de frein', 'error');
-        elements.brakeType.classList.add('border-red-500');
+        elements.brakeType.classList.add('error');
         isValid = false;
     } else {
-        elements.brakeType.classList.remove('border-red-500');
+        elements.brakeType.classList.remove('error');
+    }
+    
+    // Validate ZigZag parameters if type is zigzag
+    if (elements.segmentType.value === 'zigzag') {
+        isValid = validateZigZagParams() && isValid;
     }
     
     return isValid;
+}
+
+// Load segment data into form for editing
+function loadSegmentForEdit(index) {
+    const segment = state.segments[index];
+    
+    // Set basic fields
+    elements.segmentId.value = segment.id;
+    elements.segmentName.value = segment.nom_segment;
+    elements.segmentDistance.value = segment.distance_cm;
+    elements.segmentType.value = segment.type_segment;
+    elements.lineColor.value = segment.ligne;
+    elements.brakeType.value = segment.frein;
+    
+    // Handle segment type specific fields
+    handleSegmentTypeChange();
+    
+    // Load ZigZag parameters if applicable
+    if (segment.type_segment === 'zigzag' && segment.zigzag_params) {
+        elements.zigzagCount.value = segment.zigzag_params.nb_zigzag || 3;
+        elements.zigzagAngles.value = segment.zigzag_params.angles ? segment.zigzag_params.angles.join(',') : '';
+        elements.zigzagDistances.value = segment.zigzag_params.distances ? segment.zigzag_params.distances.join(',') : '';
+        elements.zigzagTimes.value = segment.zigzag_params.times ? segment.zigzag_params.times.join(',') : '';
+        validateZigZagParams();
+    }
+    
+    // Load circle parameters if applicable - CHANGÉ pour rayon
+    if (['cercle', 'demi_cercle', 'arc'].includes(segment.type_segment) && segment.cercle_params) {
+        // Si ancienne version avec diamètre, convertir en rayon
+        if (segment.cercle_params.diametre) {
+            elements.circleRadius.value = segment.cercle_params.diametre / 2;
+        } else if (segment.cercle_params.rayon) {
+            elements.circleRadius.value = segment.cercle_params.rayon;
+        } else {
+            elements.circleRadius.value = 5; // Valeur par défaut
+        }
+        
+        // Set turns value
+        const turns = segment.cercle_params.tours || 1;
+        if ([0.5, 1, 1.5, 2, 2.5, 3].includes(turns)) {
+            elements.circleTurns.value = turns.toString();
+        } else {
+            elements.circleTurns.value = 'custom';
+            elements.customCircleTurns.value = turns;
+            elements.customTurnsLabel.classList.remove('hidden');
+            elements.customCircleTurns.classList.remove('hidden');
+        }
+        
+        calculateCircleDistance();
+    }
+    
+    // Load speed parameters
+    if (segment.vitesse) {
+        setSpeedMode('modify');
+        elements.speedMax.value = segment.vitesse.vitesse_max || '';
+        elements.speedBase.value = segment.vitesse.vitesse_base || '';
+    } else {
+        setSpeedMode('unchanged');
+    }
+    
+    // Load driving mode
+    if (segment.mode_conduite) {
+        if (['pid_ligne', 'encodeur_distance', 'suivi_ligne', 'gyroscope'].includes(segment.mode_conduite)) {
+            elements.drivingMode.value = segment.mode_conduite;
+            elements.customDrivingMode.classList.add('hidden');
+        } else {
+            elements.drivingMode.value = 'custom';
+            elements.customDrivingInput.value = segment.mode_conduite;
+            elements.customDrivingMode.classList.remove('hidden');
+        }
+    } else {
+        elements.drivingMode.value = 'pid_ligne';
+        elements.customDrivingMode.classList.add('hidden');
+    }
+    
+    // Load interrupted traits
+    if (segment.traits_interrompus && segment.traits_interrompus.length > 0) {
+        elements.enableTraits.checked = true;
+        elements.traitsContainer.classList.remove('hidden');
+        
+        // Clear existing traits
+        elements.traitsList.innerHTML = '';
+        
+        // Add traits
+        segment.traits_interrompus.forEach((trait, i) => {
+            const traitHtml = `
+                <div class="trait-row">
+                    <input type="number" class="trait-input" value="${trait}" placeholder="Trait ${i + 1}">
+                    <button class="remove-trait-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = traitHtml;
+            const newTrait = tempDiv.firstChild;
+            
+            elements.traitsList.appendChild(newTrait);
+            
+            // Add event listener to remove button
+            newTrait.querySelector('.remove-trait-btn').addEventListener('click', function() {
+                newTrait.remove();
+            });
+        });
+    } else {
+        elements.enableTraits.checked = false;
+        elements.traitsContainer.classList.add('hidden');
+    }
+    
+    // Load end condition
+    if (segment.condition_fin) {
+        elements.endCondition.value = segment.condition_fin.type;
+        updateConditionParams();
+        
+        // Set condition value based on type
+        switch(segment.condition_fin.type) {
+            case 'distance':
+                if (document.getElementById('condition-distance')) {
+                    document.getElementById('condition-distance').value = segment.condition_fin.valeur || '';
+                }
+                break;
+            case 'capteurs':
+                if (document.getElementById('condition-capteurs')) {
+                    document.getElementById('condition-capteurs').value = segment.condition_fin.nb_capteurs || '';
+                }
+                break;
+            case 'angle':
+                if (document.getElementById('condition-angle')) {
+                    document.getElementById('condition-angle').value = segment.condition_fin.valeur || '';
+                }
+                break;
+            case 'temps':
+                if (document.getElementById('condition-temps')) {
+                    document.getElementById('condition-temps').value = segment.condition_fin.valeur_secondes || '';
+                }
+                break;
+            case 'custom':
+                if (document.getElementById('condition-custom')) {
+                    document.getElementById('condition-custom').value = segment.condition_fin.condition || '';
+                }
+                break;
+        }
+    } else {
+        elements.endCondition.value = 'aucune';
+        updateConditionParams();
+    }
+    
+    // Update current segment
+    updateCurrentSegment();
+}
+
+// Enter edit mode
+function enterEditMode(index) {
+    state.editingIndex = index;
+    
+    // Update form UI
+    elements.formIcon.className = 'fas fa-edit';
+    elements.formTitle.textContent = 'Modifier le Segment';
+    elements.addSegmentBtn.classList.add('hidden');
+    elements.updateSegmentBtn.classList.remove('hidden');
+    elements.cancelEditBtn.classList.remove('hidden');
+    
+    // Load segment data into form
+    loadSegmentForEdit(index);
+    
+    showNotification('Mode édition activé', 'info');
+}
+
+// Exit edit mode
+function exitEditMode() {
+    state.editingIndex = null;
+    
+    // Update form UI
+    elements.formIcon.className = 'fas fa-plus';
+    elements.formTitle.textContent = 'Créer un Segment';
+    elements.addSegmentBtn.classList.remove('hidden');
+    elements.updateSegmentBtn.classList.add('hidden');
+    elements.cancelEditBtn.classList.add('hidden');
+    
+    // Reset form to default values
+    resetForm();
+}
+
+// Cancel edit
+function cancelEdit() {
+    exitEditMode();
+    showNotification('Modification annulée', 'warning');
+}
+
+// Reset form to default values
+function resetForm() {
+    // Get next ID
+    const nextId = Math.max(...state.segments.map(s => s.id), 0) + 1;
+    
+    // Reset basic fields
+    elements.segmentId.value = nextId;
+    elements.segmentName.value = `segment_${nextId}`;
+    elements.segmentDistance.value = 100;
+    elements.segmentType.value = 'ligne_continue';
+    elements.lineColor.value = 'noire';
+    elements.brakeType.value = 'frein_sec';
+    
+    // Hide specialized panels
+    elements.zigzagParams.classList.add('hidden');
+    elements.circleParams.classList.add('hidden');
+    
+    // Reset speed
+    setSpeedMode('unchanged');
+    elements.speedMax.value = '';
+    elements.speedBase.value = '';
+    
+    // Reset driving mode
+    elements.drivingMode.value = 'pid_ligne';
+    elements.customDrivingMode.classList.add('hidden');
+    elements.customDrivingInput.value = '';
+    
+    // Reset interrupted traits
+    elements.enableTraits.checked = false;
+    elements.traitsContainer.classList.add('hidden');
+    elements.traitsList.innerHTML = `
+        <div class="trait-row">
+            <input type="number" value="3" class="trait-input" placeholder="Trait 1">
+            <button class="remove-trait-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="trait-row">
+            <input type="number" value="2" class="trait-input" placeholder="Trait 2">
+            <button class="remove-trait-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    // Reset end condition
+    elements.endCondition.value = 'aucune';
+    updateConditionParams();
+    
+    // Reset circle parameters
+    elements.circleRadius.value = 5;
+    elements.circleTurns.value = '1';
+    elements.customTurnsLabel.classList.add('hidden');
+    elements.customCircleTurns.classList.add('hidden');
+    
+    // Update current segment
+    updateCurrentSegment();
 }
 
 // Add a new segment
@@ -285,7 +681,7 @@ function addSegment() {
     };
     
     // Add speed if modified
-    if (elements.speedModifyBtn.classList.contains('bg-gradient-to-r')) {
+    if (elements.speedModifyBtn.classList.contains('active')) {
         const vitesse = {};
         if (elements.speedMax.value) {
             vitesse.vitesse_max = parseFloat(elements.speedMax.value);
@@ -318,6 +714,58 @@ function addSegment() {
         if (traits.length > 0) {
             segment.traits_interrompus = traits;
         }
+    }
+    
+    // Add ZigZag parameters if type is zigzag
+    if (segment.type_segment === 'zigzag') {
+        const zigzagParams = {};
+        const count = parseInt(elements.zigzagCount.value) || 3;
+        
+        // Parse angles
+        const angles = elements.zigzagAngles.value.split(',').map(a => parseFloat(a.trim())).filter(a => !isNaN(a));
+        if (angles.length >= count) {
+            zigzagParams.angles = angles.slice(0, count);
+        }
+        
+        // Parse distances
+        const distances = elements.zigzagDistances.value.split(',').map(d => parseFloat(d.trim())).filter(d => !isNaN(d));
+        if (distances.length >= count) {
+            zigzagParams.distances = distances.slice(0, count);
+        }
+        
+        // Parse times (optional)
+        const times = elements.zigzagTimes.value.split(',').map(t => parseFloat(t.trim())).filter(t => !isNaN(t));
+        if (times.length >= count) {
+            zigzagParams.times = times.slice(0, count);
+        }
+        
+        zigzagParams.nb_zigzag = count;
+        segment.zigzag_params = zigzagParams;
+    }
+    
+    // Add circle parameters if type is circle/demi_cercle/arc - CHANGÉ pour rayon
+    if (['cercle', 'demi_cercle', 'arc'].includes(segment.type_segment)) {
+        const circleParams = {};
+        circleParams.rayon = parseFloat(elements.circleRadius.value) || 5; // CHANGÉ
+        
+        let turns = 1;
+        if (elements.circleTurns.value === 'custom') {
+            turns = parseFloat(elements.customCircleTurns.value) || 1;
+        } else {
+            turns = parseFloat(elements.circleTurns.value) || 1;
+        }
+        
+        circleParams.tours = turns;
+        
+        if (segment.type_segment === 'demi_cercle') {
+            circleParams.type_tour = 'demi';
+        } else if (segment.type_segment === 'arc') {
+            circleParams.type_tour = 'arc';
+        } else {
+            circleParams.type_tour = 'complet';
+        }
+        
+        segment.cercle_params = circleParams;
     }
     
     // Add end condition (default is "aucune")
@@ -373,25 +821,178 @@ function addSegment() {
     renderSegments();
     updateSegmentCount();
     
-    // Increment ID for next segment
-    state.nextId++;
-    elements.segmentId.value = state.nextId;
-    elements.segmentName.value = `segment_${state.nextId}`;
-    
-    // Reset form (keep required fields)
-    elements.segmentDistance.value = 100;
-    elements.speedMax.value = '';
-    elements.speedBase.value = '';
-    elements.drivingMode.value = 'pid_ligne';
-    elements.customDrivingMode.classList.add('hidden');
-    elements.customDrivingInput.value = '';
-    elements.enableTraits.checked = false;
-    elements.traitsContainer.classList.add('hidden');
-    elements.endCondition.value = 'aucune';
-    updateConditionParams();
+    // Reset form for next segment
+    resetForm();
     
     // Show success message
     showNotification(`Segment "${segment.nom_segment}" ajouté avec succès!`, 'success');
+}
+
+// Update existing segment
+function updateSegment() {
+    // Validate form
+    if (!validateForm()) {
+        return;
+    }
+    
+    if (state.editingIndex === null) return;
+    
+    // Create the updated segment object
+    const segment = {
+        id: state.currentSegment.id,
+        nom_segment: state.currentSegment.nom_segment,
+        distance_cm: state.currentSegment.distance_cm,
+        type_segment: state.currentSegment.type_segment,
+        ligne: state.currentSegment.ligne,
+        frein: state.currentSegment.frein
+    };
+    
+    // Add speed if modified
+    if (elements.speedModifyBtn.classList.contains('active')) {
+        const vitesse = {};
+        if (elements.speedMax.value) {
+            vitesse.vitesse_max = parseFloat(elements.speedMax.value);
+        }
+        if (elements.speedBase.value) {
+            vitesse.vitesse_base = parseFloat(elements.speedBase.value);
+        }
+        if (Object.keys(vitesse).length > 0) {
+            segment.vitesse = vitesse;
+        }
+    }
+    
+    // Add driving mode
+    if (elements.drivingMode.value !== 'pid_ligne') {
+        if (elements.drivingMode.value === 'custom' && elements.customDrivingInput.value) {
+            segment.mode_conduite = elements.customDrivingInput.value;
+        } else if (elements.drivingMode.value !== 'custom') {
+            segment.mode_conduite = elements.drivingMode.value;
+        }
+    }
+    
+    // Add interrupted traits if enabled
+    if (elements.enableTraits.checked) {
+        const traits = [];
+        document.querySelectorAll('.trait-input').forEach(input => {
+            if (input.value) {
+                traits.push(parseFloat(input.value));
+            }
+        });
+        if (traits.length > 0) {
+            segment.traits_interrompus = traits;
+        }
+    }
+    
+    // Add ZigZag parameters if type is zigzag
+    if (segment.type_segment === 'zigzag') {
+        const zigzagParams = {};
+        const count = parseInt(elements.zigzagCount.value) || 3;
+        
+        // Parse angles
+        const angles = elements.zigzagAngles.value.split(',').map(a => parseFloat(a.trim())).filter(a => !isNaN(a));
+        if (angles.length >= count) {
+            zigzagParams.angles = angles.slice(0, count);
+        }
+        
+        // Parse distances
+        const distances = elements.zigzagDistances.value.split(',').map(d => parseFloat(d.trim())).filter(d => !isNaN(d));
+        if (distances.length >= count) {
+            zigzagParams.distances = distances.slice(0, count);
+        }
+        
+        // Parse times (optional)
+        const times = elements.zigzagTimes.value.split(',').map(t => parseFloat(t.trim())).filter(t => !isNaN(t));
+        if (times.length >= count) {
+            zigzagParams.times = times.slice(0, count);
+        }
+        
+        zigzagParams.nb_zigzag = count;
+        segment.zigzag_params = zigzagParams;
+    }
+    
+    // Add circle parameters if type is circle/demi_cercle/arc - CHANGÉ pour rayon
+    if (['cercle', 'demi_cercle', 'arc'].includes(segment.type_segment)) {
+        const circleParams = {};
+        circleParams.rayon = parseFloat(elements.circleRadius.value) || 5; // CHANGÉ
+        
+        let turns = 1;
+        if (elements.circleTurns.value === 'custom') {
+            turns = parseFloat(elements.customCircleTurns.value) || 1;
+        } else {
+            turns = parseFloat(elements.circleTurns.value) || 1;
+        }
+        
+        circleParams.tours = turns;
+        
+        if (segment.type_segment === 'demi_cercle') {
+            circleParams.type_tour = 'demi';
+        } else if (segment.type_segment === 'arc') {
+            circleParams.type_tour = 'arc';
+        } else {
+            circleParams.type_tour = 'complet';
+        }
+        
+        segment.cercle_params = circleParams;
+    }
+    
+    // Add end condition (default is "aucune")
+    const conditionType = elements.endCondition.value;
+    if (conditionType !== 'aucune') {
+        let condition = { type: conditionType };
+        
+        switch(conditionType) {
+            case 'distance':
+                const distanceInput = document.getElementById('condition-distance');
+                if (distanceInput && distanceInput.value) {
+                    condition.valeur = parseFloat(distanceInput.value);
+                    segment.condition_fin = condition;
+                }
+                break;
+            case 'capteurs':
+                const capteursInput = document.getElementById('condition-capteurs');
+                if (capteursInput && capteursInput.value) {
+                    condition.nb_capteurs = parseInt(capteursInput.value);
+                    segment.condition_fin = condition;
+                }
+                break;
+            case 'angle':
+                const angleInput = document.getElementById('condition-angle');
+                if (angleInput && angleInput.value) {
+                    const angleValue = parseFloat(angleInput.value);
+                    condition.valeur = angleValue;
+                    condition.description = angleValue > 0 ? 'droite' : 'gauche';
+                    segment.condition_fin = condition;
+                }
+                break;
+            case 'temps':
+                const tempsInput = document.getElementById('condition-temps');
+                if (tempsInput && tempsInput.value) {
+                    condition.valeur_secondes = parseFloat(tempsInput.value);
+                    segment.condition_fin = condition;
+                }
+                break;
+            case 'custom':
+                const customInput = document.getElementById('condition-custom');
+                if (customInput && customInput.value) {
+                    condition.condition = customInput.value;
+                    segment.condition_fin = condition;
+                }
+                break;
+        }
+    }
+    
+    // Update the segment in the array
+    state.segments[state.editingIndex] = segment;
+    
+    // Exit edit mode
+    exitEditMode();
+    
+    // Update UI
+    renderSegments();
+    updateSegmentCount();
+    
+    // Show success message
+    showNotification(`Segment "${segment.nom_segment}" mis à jour avec succès!`, 'success');
 }
 
 // Render segments in the list view
@@ -409,84 +1010,147 @@ function renderSegments() {
     state.segments.forEach((segment, index) => {
         // Determine badge color based on segment type
         let typeBadgeClass = 'badge-purple';
+        let typeIcon = 'fas fa-minus';
+        let typeText = segment.type_segment.replace('_', ' ');
+        
         if (segment.type_segment.includes('cercle')) {
             typeBadgeClass = 'badge-blue';
+            typeIcon = 'fas fa-circle';
         } else if (segment.type_segment === 'virage') {
             typeBadgeClass = 'badge-yellow';
+            typeIcon = 'fas fa-curve-path';
         } else if (segment.type_segment === 'sinus') {
             typeBadgeClass = 'badge-pink';
+            typeIcon = 'fas fa-wave-sine';
+        } else if (segment.type_segment === 'zigzag') {
+            typeBadgeClass = 'badge-orange';
+            typeIcon = 'fas fa-wave-square';
         }
         
         // Determine line color badge
-        const lineBadgeClass = segment.ligne === 'noire' ? 'badge-gray' : 'badge-white border border-gray-600';
+        const lineBadgeClass = segment.ligne === 'noire' ? 'badge-gray' : 'badge-white';
         const lineText = segment.ligne === 'noire' ? 'Ligne Noire' : 'Ligne Blanche';
+        const lineIcon = segment.ligne === 'noire' ? 'fas fa-square' : 'fas fa-square';
+        // Removed 'text-gray-300' class for better visibility
         
         // Determine brake badge
         let brakeBadgeClass = 'badge-red';
         let brakeText = '';
+        let brakeIcon = 'fas fa-stop';
+        
         if (segment.frein === 'frein_sec') {
             brakeText = 'Frein Sec';
         } else if (segment.frein === 'frein_progressif') {
             brakeText = 'Frein Progressif';
             brakeBadgeClass = 'badge-yellow';
+            brakeIcon = 'fas fa-stop-circle';
         } else {
             brakeText = 'Sans Frein';
             brakeBadgeClass = 'badge-gray';
+            brakeIcon = 'fas fa-ban';
+        }
+        
+        // Build segment details HTML
+        let detailsHTML = '';
+        
+        if (segment.vitesse) {
+            detailsHTML += `
+                <div class="detail-item" style="color: #10b981;">
+                    <i class="fas fa-bolt"></i>
+                    <span class="detail-text">Vitesse: 
+                        ${segment.vitesse.vitesse_max ? `Max: ${segment.vitesse.vitesse_max}` : ''}
+                        ${segment.vitesse.vitesse_base ? `, Base: ${segment.vitesse.vitesse_base}` : ''}
+                    </span>
+                </div>
+            `;
+        }
+        
+        if (segment.mode_conduite) {
+            detailsHTML += `
+                <div class="detail-item" style="color: #ec4899;">
+                    <i class="fas fa-car"></i>
+                    <span class="detail-text">${segment.mode_conduite}</span>
+                </div>
+            `;
+        }
+        
+        if (segment.traits_interrompus) {
+            detailsHTML += `
+                <div class="detail-item" style="color: #f59e0b;">
+                    <i class="fas fa-grip-lines"></i>
+                    <span class="detail-text">Traits: ${segment.traits_interrompus.join(', ')} cm</span>
+                </div>
+            `;
+        }
+        
+        if (segment.zigzag_params) {
+            detailsHTML += `
+                <div class="detail-item" style="color: #f97316;">
+                    <i class="fas fa-wave-square"></i>
+                    <span class="detail-text">ZigZag: ${segment.zigzag_params.nb_zigzag} zigzags</span>
+                </div>
+            `;
+        }
+        
+        if (segment.cercle_params) {
+            const typeText = segment.cercle_params.type_tour === 'demi' ? 'Demi-' : 
+                           segment.cercle_params.type_tour === 'arc' ? 'Arc de ' : '';
+            detailsHTML += `
+                <div class="detail-item" style="color: #3b82f6;">
+                    <i class="fas fa-circle"></i>
+                    <span class="detail-text">${typeText}Cercle: R=${segment.cercle_params.rayon}cm × ${segment.cercle_params.tours} tours</span>
+                </div>
+            `;
+        }
+        
+        if (segment.condition_fin) {
+            detailsHTML += `
+                <div class="detail-item" style="color: #ef4444;">
+                    <i class="fas fa-flag-checkered"></i>
+                    <span class="detail-text">
+                        Fin: ${segment.condition_fin.type}
+                        ${segment.condition_fin.valeur ? `: ${segment.condition_fin.valeur}` : ''}
+                        ${segment.condition_fin.nb_capteurs ? `: ${segment.condition_fin.nb_capteurs} capteurs` : ''}
+                    </span>
+                </div>
+            `;
         }
         
         html += `
             <div class="segment-card">
-                <div class="flex justify-between items-start mb-4">
+                <div class="segment-header">
                     <div>
-                        <h3 class="text-xl font-bold text-white mb-1">${segment.nom_segment}</h3>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="badge-gray segment-badge">ID: ${segment.id}</span>
-                            <span class="badge-blue segment-badge">${segment.distance_cm} cm</span>
-                            <span class="${typeBadgeClass} segment-badge">${segment.type_segment.replace('_', ' ')}</span>
-                            <span class="${lineBadgeClass} segment-badge">${lineText}</span>
-                            <span class="${brakeBadgeClass} segment-badge">${brakeText}</span>
+                        <h3 class="segment-title">${segment.nom_segment}</h3>
+                        <div class="segment-badges">
+                            <span class="badge badge-gray">
+                                <i class="fas fa-hashtag"></i> ID: ${segment.id}
+                            </span>
+                            <span class="badge badge-blue">
+                                <i class="fas fa-ruler"></i> ${segment.distance_cm} cm
+                            </span>
+                            <span class="badge ${typeBadgeClass}">
+                                <i class="${typeIcon}"></i> ${typeText}
+                            </span>
+                            <span class="badge ${lineBadgeClass}">
+                                <i class="${lineIcon}"></i> ${lineText}
+                            </span>
+                            <span class="badge ${brakeBadgeClass}">
+                                <i class="${brakeIcon}"></i> ${brakeText}
+                            </span>
                         </div>
                     </div>
-                    <button class="delete-segment text-red-400 hover:text-red-300 transition" data-index="${index}">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
+                    <div class="segment-actions">
+                        <button class="segment-action-btn edit-btn" data-index="${index}" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="segment-action-btn delete-btn" data-index="${index}" title="Supprimer">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    ${segment.vitesse ? `
-                        <div class="flex items-center">
-                            <i class="fas fa-bolt text-green-400 mr-2"></i>
-                            <span class="text-sm text-gray-300">Vitesse: 
-                                ${segment.vitesse.vitesse_max ? `Max: ${segment.vitesse.vitesse_max}` : ''}
-                                ${segment.vitesse.vitesse_base ? `, Base: ${segment.vitesse.vitesse_base}` : ''}
-                            </span>
-                        </div>
-                    ` : ''}
-                    
-                    ${segment.mode_conduite ? `
-                        <div class="flex items-center">
-                            <i class="fas fa-car text-pink-400 mr-2"></i>
-                            <span class="text-sm text-gray-300">${segment.mode_conduite}</span>
-                        </div>
-                    ` : ''}
-                    
-                    ${segment.traits_interrompus ? `
-                        <div class="flex items-center">
-                            <i class="fas fa-grip-lines text-yellow-400 mr-2"></i>
-                            <span class="text-sm text-gray-300">Traits: ${segment.traits_interrompus.join(', ')} cm</span>
-                        </div>
-                    ` : ''}
-                    
-                    ${segment.condition_fin ? `
-                        <div class="flex items-center">
-                            <i class="fas fa-flag-checkered text-red-400 mr-2"></i>
-                            <span class="text-sm text-gray-300">
-                                Fin: ${segment.condition_fin.type}
-                                ${segment.condition_fin.valeur ? `: ${segment.condition_fin.valeur}` : ''}
-                                ${segment.condition_fin.nb_capteurs ? `: ${segment.condition_fin.nb_capteurs} capteurs` : ''}
-                            </span>
-                        </div>
-                    ` : ''}
+                <div class="segment-details">
+                    ${detailsHTML}
                 </div>
             </div>
         `;
@@ -494,8 +1158,16 @@ function renderSegments() {
     
     elements.segmentListView.innerHTML = html;
     
+    // Add event listeners to edit buttons
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const index = parseInt(this.getAttribute('data-index'));
+            editSegment(index);
+        });
+    });
+    
     // Add event listeners to delete buttons
-    document.querySelectorAll('.delete-segment').forEach(button => {
+    document.querySelectorAll('.delete-btn').forEach(button => {
         button.addEventListener('click', function() {
             const index = parseInt(this.getAttribute('data-index'));
             deleteSegment(index);
@@ -508,9 +1180,19 @@ function renderSegments() {
     }
 }
 
+// Edit a segment
+function editSegment(index) {
+    enterEditMode(index);
+}
+
 // Delete a segment
 function deleteSegment(index) {
     if (confirm(`Voulez-vous vraiment supprimer le segment "${state.segments[index].nom_segment}" ?`)) {
+        // If we're editing this segment, exit edit mode first
+        if (state.editingIndex === index) {
+            exitEditMode();
+        }
+        
         state.segments.splice(index, 1);
         renderSegments();
         updateSegmentCount();
@@ -531,14 +1213,14 @@ function toggleViewMode() {
         elements.segmentListView.classList.add('hidden');
         elements.jsonPreviewView.classList.remove('hidden');
         elements.viewModeText.textContent = 'Vue Liste';
-        elements.toggleViewBtn.innerHTML = '<i class="fas fa-list mr-2"></i>Vue Liste';
+        elements.toggleViewBtn.innerHTML = '<i class="fas fa-list"></i><span>Vue Liste</span>';
         updateJSONPreview();
     } else {
         state.viewMode = 'list';
         elements.segmentListView.classList.remove('hidden');
         elements.jsonPreviewView.classList.add('hidden');
         elements.viewModeText.textContent = 'Vue JSON';
-        elements.toggleViewBtn.innerHTML = '<i class="fas fa-eye mr-2"></i>Vue JSON';
+        elements.toggleViewBtn.innerHTML = '<i class="fas fa-eye"></i><span>Vue JSON</span>';
     }
 }
 
@@ -549,8 +1231,8 @@ function updateJSONPreview() {
         metadata: {
             nombre_segments: state.segments.length,
             date_creation: new Date().toISOString(),
-            version: "1.0",
-            description: "Séquence de segments générée avec Segment Modeler"
+            version: "2.0",
+            description: "Séquence de segments générée avec Segment Modeler Pro"
         }
     };
     
@@ -569,8 +1251,8 @@ function exportJSON() {
         metadata: {
             nombre_segments: state.segments.length,
             date_creation: new Date().toISOString(),
-            version: "1.0",
-            description: "Séquence de segments générée avec Segment Modeler"
+            version: "2.0",
+            description: "Séquence de segments générée avec Segment Modeler Pro"
         }
     };
     
@@ -599,7 +1281,7 @@ function copyJSONToClipboard() {
         metadata: {
             nombre_segments: state.segments.length,
             date_creation: new Date().toISOString(),
-            version: "1.0"
+            version: "2.0"
         }
     };
     
@@ -620,10 +1302,14 @@ function clearAllSegments() {
     }
     
     if (confirm(`Voulez-vous vraiment effacer tous les segments (${state.segments.length}) ?`)) {
+        // Exit edit mode if active
+        if (state.editingIndex !== null) {
+            exitEditMode();
+        }
+        
         state.segments = [];
         state.nextId = 1;
-        elements.segmentId.value = 1;
-        elements.segmentName.value = 'segment_1';
+        resetForm();
         renderSegments();
         updateSegmentCount();
         showNotification('Tous les segments ont été effacés', 'warning');
@@ -636,48 +1322,88 @@ function showNotification(message, type = 'info') {
     const existingNotifications = document.querySelectorAll('.notification');
     existingNotifications.forEach(notif => notif.remove());
     
-    // Determine icon and color
+    // Determine icon and background
     let icon = 'info-circle';
-    let gradient = 'from-blue-600 to-blue-700';
+    let bgColor = 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
     
     if (type === 'success') {
         icon = 'check-circle';
-        gradient = 'from-green-600 to-green-700';
+        bgColor = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
     } else if (type === 'error') {
         icon = 'exclamation-circle';
-        gradient = 'from-red-600 to-red-700';
+        bgColor = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
     } else if (type === 'warning') {
         icon = 'exclamation-triangle';
-        gradient = 'from-yellow-600 to-yellow-700';
+        bgColor = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
     }
     
     // Create notification element
     const notification = document.createElement('div');
-    notification.className = `notification bg-gradient-to-r ${gradient}`;
+    notification.className = 'notification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 1.5rem;
+        right: 1.5rem;
+        z-index: 1000;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-md);
+        background: ${bgColor};
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: var(--shadow-lg);
+        animation: slideIn 0.3s ease-out;
+    `;
     
     notification.innerHTML = `
-        <div class="flex items-center">
-            <i class="fas fa-${icon} mr-3"></i>
-            <span class="font-medium">${message}</span>
-        </div>
+        <i class="fas fa-${icon}" style="font-size: 1.25rem;"></i>
+        <span style="font-weight: 500;">${message}</span>
     `;
     
     // Add to page
     document.body.appendChild(notification);
     
-    // Animate in
-    setTimeout(() => {
-        notification.classList.remove('translate-x-full');
-    }, 10);
-    
     // Remove after 3 seconds
     setTimeout(() => {
-        notification.classList.add('translate-x-full');
+        notification.style.animation = 'slideOut 0.3s ease-out forwards';
         setTimeout(() => {
             notification.remove();
         }, 300);
     }, 3000);
 }
+
+// Add CSS animation for notifications
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+    
+    .error {
+        border-color: #ef4444 !important;
+        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1) !important;
+    }
+`;
+document.head.appendChild(style);
 
 // Initialize the app when the page loads
 document.addEventListener('DOMContentLoaded', initApp);
