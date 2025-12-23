@@ -25,7 +25,7 @@
                 <div class="header-stats">
                     <div class="stat">
                         <i class="fas fa-shapes"></i>
-                        <span>7 Types de Segments</span>
+                        <span>5 Types de Segments</span>
                     </div>
                     <div class="stat">
                         <i class="fas fa-download"></i>
@@ -97,8 +97,6 @@
                                             <option value="virage">Virage</option>
                                             <option value="sinus">Sinus</option>
                                             <option value="cercle">Cercle</option>
-                                            <option value="demi_cercle">Demi-Cercle</option>
-                                            <option value="arc">Arc de Cercle</option>
                                             <option value="zigzag">Zigzag</option>
                                         </select>
                                         <i class="fas fa-chevron-down select-arrow"></i>
@@ -134,6 +132,16 @@
                                         </select>
                                         <i class="fas fa-chevron-down select-arrow"></i>
                                     </div>
+                                </div>
+
+                                <!-- Distance de freinage (Optionnel) -->
+                                <div class="input-group">
+                                    <label class="input-label">
+                                        <i class="fas fa-ruler-combined"></i> Distance de freinage (cm)
+                                        <span class="optional-badge">Optionnel</span>
+                                    </label>
+                                    <input type="number" id="brake-distance" placeholder="Ex: 20" class="text-input">
+                                    <small class="input-hint">Distance avant la fin pour activer le frein</small>
                                 </div>
                             </div>
                         </div>
@@ -172,7 +180,7 @@
                             </div>
                         </div>
 
-                        <!-- Circle Parameters (only visible when type is cercle/demi_cercle/arc) -->
+                        <!-- Circle Parameters (only visible when type is cercle) -->
                         <div id="circle-params" class="section hidden">
                             <div class="section-header">
                                 <div class="section-icon">
@@ -254,28 +262,31 @@
                             </div>
                         </div>
 
-                        <!-- Driving Mode -->
+                        <!-- Driving Mode - NOUVELLE VERSION -->
                         <div class="section">
                             <div class="section-header">
                                 <div class="section-icon">
                                     <i class="fas fa-car"></i>
                                 </div>
-                                <h3>🚗 Mode de Conduite</h3>
+                                <h3>🚗 Modes de Conduite</h3>
                             </div>
                             
-                            <div class="select-container">
-                                <select id="driving-mode" class="select-input">
-                                    <option value="pid_ligne">PID Ligne</option>
-                                    <option value="encodeur_distance">Encodeur Distance</option>
-                                    <option value="suivi_ligne">Suivi de Ligne</option>
-                                    <option value="gyroscope">Gyroscope</option>
-                                    <option value="custom">✍️ Écrire moi-même</option>
-                                </select>
-                                <i class="fas fa-chevron-down select-arrow"></i>
+                            <div class="input-group">
+                                <label>Nombre de fonctions</label>
+                                <div class="select-container">
+                                    <select id="function-count" class="select-input">
+                                        <option value="1">1 fonction</option>
+                                        <option value="2">2 fonctions</option>
+                                        <option value="3" selected>3 fonctions</option>
+                                        <option value="4">4 fonctions</option>
+                                        <option value="5">5 fonctions</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
+                                </div>
                             </div>
 
-                            <div id="custom-driving-mode" class="hidden mt-3">
-                                <input type="text" id="custom-driving-input" placeholder="Écrivez votre mode de conduite personnalisé" class="text-input">
+                            <div id="functions-container" class="functions-container">
+                                <!-- Les fonctions seront ajoutées dynamiquement ici -->
                             </div>
                         </div>
 
